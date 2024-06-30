@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "397625518018",
+    "project_id": "bitbyter-twodoo",
+    "storage_bucket": "bitbyter-twodoo.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:397625518018:android:104eb6e48f89c57364585b",
+        "android_client_info": {
+          "package_name": "com.bitbyter.twodoo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "397625518018-l96bpec582o06sogsj7ul35190623loo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bitbyter.twodoo",
+            "certificate_hash": "c85a6deab02c319f66e04ddae69c8ac97c4fc629"
+          }
+        },
+        {
+          "client_id": "397625518018-0hkl308g6opdpupkrr9ue47khh3pnsfa.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDdg-bIqr1SOuW4bjd-gIxqbPM7Si9hvo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "397625518018-0hkl308g6opdpupkrr9ue47khh3pnsfa.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

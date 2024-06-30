@@ -12,6 +12,11 @@ class FirestoreRepository {
         dataCollection.add(toDoDataItem).await()
     }
 
+    suspend fun addReminderData(id: String, reminderTime: String) {
+        val reminderMap = mapOf("reminderTime" to reminderTime)
+        dataCollection.document(id).update(reminderMap).await()
+    }
+
     suspend fun getToDoDataItems(): List<ToDoDataItem> {
         return try {
             val snapshot = dataCollection.get().await()
@@ -21,6 +26,16 @@ class FirestoreRepository {
         } catch (e: Exception) {
             emptyList()
         }
+    }
+
+    suspend fun updateToDoItem(updatedItem: ToDoDataItem) {
+//        val updatedDataMap = mapOf(
+//            "title" to updatedItem.title,
+//            "description" to updatedItem.description,
+//            "reminderTime" to updatedItem.reminderTime,
+//            "isChecked" to updatedItem.isChecked
+//        )
+        dataCollection.document(updatedItem.id).set(updatedItem).await()
     }
 
     suspend fun deleteDataItem(id: String) {

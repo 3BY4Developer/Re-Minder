@@ -1,7 +1,12 @@
 package com.bitbyter.twodoo.presentation
 
 import android.annotation.SuppressLint
+import android.app.AlarmManager
+import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -11,15 +16,11 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -27,11 +28,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.bitbyter.twodoo.presentation.landing_screen.ToDoHome
-import com.bitbyter.twodoo.presentation.profile.ProfileScreen
 import com.bitbyter.twodoo.presentation.sign_in.GoogleAuthUiClient
 import com.bitbyter.twodoo.presentation.sign_in.SignInScreen
 import com.bitbyter.twodoo.presentation.sign_in.SignInViewModel
 import com.bitbyter.twodoo.repository.FirestoreRepository
+import com.bitbyter.twodoo.services.ReminderService
 import com.bitbyter.twodoo.ui.theme.TwoDooTheme
 import com.bitbyter.twodoo.viewmodel.ToDoDataViewModel
 import com.bitbyter.twodoo.viewmodel.ToDoDataViewModelFactory
@@ -53,6 +54,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         FirebaseApp.initializeApp(this)
+        requestExactAlarmPermission(this)
+        ReminderService().createNotificationChannel(this)
 
         enableEdgeToEdge()
         setContent {
@@ -118,6 +121,7 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("landing_screen") {
                             ToDoHome(
+                                context = this@MainActivity,
                                 userData = googleAuthUiClient.getSignedInUser(),
                                 onSignOut = {
                                     lifecycleScope.launch {
@@ -139,6 +143,17 @@ class MainActivity : ComponentActivity() {
 
                 }
             }
+        }
+    }
+}
+
+fun requestExactAlarmPermission(context: Context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (!(context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()) {
+            val intent = Intent().apply {
+                action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+            }
+            context.startActivity(intent)
         }
     }
 }
