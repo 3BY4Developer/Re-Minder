@@ -2,6 +2,7 @@ package com.bitbyter.twodoo.viewmodel
 
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bitbyter.twodoo.data.ToDoDataItem
@@ -32,15 +33,16 @@ class ToDoDataViewModel(private val repository: FirestoreRepository) : ViewModel
     }
     fun setReminderTime(context: Context, id: String, time: Long, message: String) {
         viewModelScope.launch {
-            val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
             dateFormat.timeZone = TimeZone.getDefault()
             val formattedTime = dateFormat.format(Date(time))
+            Log.d("dateCheck", formattedTime)
             repository.addReminderData(id, formattedTime)
             fetchDataItems()
 
             // Schedule the reminder
             requestExactAlarmPermission(context)
-            scheduleReminder(context, time, message)
+            scheduleReminder(context, id, time, message)
         }
     }
 

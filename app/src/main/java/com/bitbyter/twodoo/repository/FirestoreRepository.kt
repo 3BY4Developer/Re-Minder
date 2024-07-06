@@ -4,9 +4,9 @@ import com.bitbyter.twodoo.data.ToDoDataItem
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
-class FirestoreRepository {
+class FirestoreRepository(private val uid: String) {
     private val db = FirebaseFirestore.getInstance()
-    private val dataCollection = db.collection("toDo-Data")
+    private val dataCollection = db.collection("toDo-Data").document(uid).collection("user-data")
 
     suspend fun addToDoDataItem(toDoDataItem: ToDoDataItem) {
         dataCollection.add(toDoDataItem).await()
@@ -29,12 +29,6 @@ class FirestoreRepository {
     }
 
     suspend fun updateToDoItem(updatedItem: ToDoDataItem) {
-//        val updatedDataMap = mapOf(
-//            "title" to updatedItem.title,
-//            "description" to updatedItem.description,
-//            "reminderTime" to updatedItem.reminderTime,
-//            "isChecked" to updatedItem.isChecked
-//        )
         dataCollection.document(updatedItem.id).set(updatedItem).await()
     }
 

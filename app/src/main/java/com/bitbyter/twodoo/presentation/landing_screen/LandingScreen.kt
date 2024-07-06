@@ -7,8 +7,11 @@ import android.app.PendingIntent
 import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,16 +20,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
@@ -69,16 +72,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.bitbyter.twodoo.data.ToDoDataItem
 import com.bitbyter.twodoo.data.UserData
 import com.bitbyter.twodoo.services.ReminderService
 import com.bitbyter.twodoo.viewmodel.ToDoDataViewModel
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Locale
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,8 +121,8 @@ fun TopBar(userData: UserData?, onSignOut: () -> Unit){
         navigationIcon = {
             IconButton(onClick = { onSignOut() }) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back Icon"
+                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                    contentDescription = "sign out"
                 )
             }
         },
@@ -211,19 +215,21 @@ fun AddOrEditToDoPopup(
     onSave: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    Popup(
-        onDismissRequest = { onDismiss() },
-        properties = PopupProperties(focusable = true),
-        alignment = Alignment.Center
-    ) {
-        Box(
+    Dialog(onDismissRequest = { onDismiss() }) {
+        Surface(
             modifier = Modifier
-                .heightIn(min = 300.dp, max = 500.dp)
-                .widthIn(min = 200.dp, max = 300.dp)
-                .border(4.dp, MaterialTheme.colorScheme.outline)
-                .background(MaterialTheme.colorScheme.background)
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.surface
         ) {
-            Column {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .imePadding(),  // Use imePadding to adjust for keyboard
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -253,7 +259,7 @@ fun AddOrEditToDoPopup(
                     ),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(
-                        onDone = { onDismiss() }
+                        onDone = { onSave() }
                     )
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -297,193 +303,216 @@ fun ShowToDoList(
 ) {
     val context = LocalContext.current
     val dataItems by toDoViewModel.toDoDataItems.collectAsState()
-
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    var selectedDateTime by remember { mutableStateOf<Calendar?>(null) }
-    var selectedDataItem by remember { mutableStateOf<ToDoDataItem?>(null) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(16.dp))
-        ) {
+    if (dataItems.isEmpty()) {
+        Box(modifier = Modifier) {
             Column(
                 modifier = Modifier
-                    .padding(4.dp)
-                    .align(Alignment.Center)
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                dataItems.forEach { dataItem ->
-                    var expanded by remember { mutableStateOf(false) }
-                    var iconOffset by remember { mutableStateOf(Offset.Zero) }
-                    var isChecked by rememberSaveable { mutableStateOf(dataItem.isChecked) }
+                LottieAnimationFromUrl("https://lottie.host/ffe72d7d-8a33-416e-b826-5d13e9235506/cJoKnLQhDt.json")
+                Text(
+                    text = "There are no Remainders. \n       Click Add + button",
+                    modifier = Modifier.padding(paddingValues),
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-                    Row(
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .border(2.dp, Color.DarkGray, RoundedCornerShape(16.dp))
-                            .padding(start = 16.dp, top = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = isChecked,
-                            onCheckedChange = {
-                                isChecked = it
-                                dataItem.isChecked = isChecked
-                                toDoViewModel.updateToDoDataItem(dataItem)
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        Column(
+        }
+    } else {
+        var selectedDataItem by remember { mutableStateOf<ToDoDataItem?>(null) }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(16.dp))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(4.dp)
+                        .align(Alignment.Center)
+                ) {
+                    dataItems.forEach { dataItem ->
+                        var expanded by remember { mutableStateOf(false) }
+                        var iconOffset by remember { mutableStateOf(Offset.Zero) }
+                        var isChecked by rememberSaveable { mutableStateOf(dataItem.isChecked) }
+
+                        Row(
                             modifier = Modifier
-                                .weight(7f)
-                                .padding(0.dp)
-                                .fillMaxWidth()
+                                .padding(8.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .border(2.dp, Color.DarkGray, RoundedCornerShape(16.dp))
+                                .padding(start = 16.dp, top = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = dataItem.title,
-                                textAlign = TextAlign.Start,
-                                modifier = Modifier.padding(bottom = 4.dp),
-                                fontSize = 20.sp
+                            Checkbox(
+                                checked = isChecked,
+                                onCheckedChange = {
+                                    isChecked = it
+                                    dataItem.isChecked = isChecked
+                                    toDoViewModel.updateToDoDataItem(dataItem)
+                                },
+                                modifier = Modifier.weight(1f)
                             )
-                            Text(
-                                text = dataItem.description,
-                                textAlign = TextAlign.Start,
-                                modifier = Modifier.padding(bottom = 4.dp),
-                                maxLines = 2,
-                                fontSize = 15.sp
-                            )
-                            if (!dataItem.reminderTime.isNullOrBlank()) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(7f)
+                                    .padding(0.dp)
+                                    .fillMaxWidth()
+                            ) {
                                 Text(
-                                    text = "Reminder: ${dataItem.reminderTime}",
+                                    text = dataItem.title,
                                     textAlign = TextAlign.Start,
-                                    modifier = Modifier.padding(bottom = 8.dp),
-                                    fontSize = 15.sp,
-                                    color = Color.Gray
+                                    modifier = Modifier.padding(bottom = 4.dp),
+                                    fontSize = 20.sp
+                                )
+                                Text(
+                                    text = dataItem.description,
+                                    textAlign = TextAlign.Start,
+                                    modifier = Modifier.padding(bottom = 4.dp),
+                                    maxLines = 2,
+                                    fontSize = 15.sp
+                                )
+                                if (!dataItem.reminderTime.isNullOrBlank()) {
+                                    Text(
+                                        text = "Reminder: ${dataItem.reminderTime}",
+                                        textAlign = TextAlign.Start,
+                                        modifier = Modifier.padding(bottom = 8.dp),
+                                        fontSize = 15.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = { expanded = true },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = 8.dp)
+                                    .onGloballyPositioned { coordinates ->
+                                        iconOffset = coordinates.positionInWindow()
+                                    }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "More options"
                                 )
                             }
-                        }
-                        IconButton(
-                            onClick = { expanded = true },
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(end = 8.dp)
-                                .onGloballyPositioned { coordinates ->
-                                    iconOffset = coordinates.positionInWindow()
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false },
+                                offset = with(LocalDensity.current) {
+                                    DpOffset(iconOffset.x.toDp(), (-25).dp)
                                 }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More options"
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            offset = with(LocalDensity.current) {
-                                DpOffset(iconOffset.x.toDp(), (-25).dp)
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Edit") },
+                                    onClick = {
+                                        expanded = false
+                                        onEdit(dataItem)
+                                    }
+                                )
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = { Text("Delete") },
+                                    onClick = {
+                                        expanded = false
+                                        toDoViewModel.deleteDataItem(dataItem.id)
+                                    }
+                                )
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = { Text("Add Reminder") },
+                                    onClick = {
+                                        expanded = false
+                                        selectedDataItem = dataItem
+                                        showDateTimePicker(context) { timeInMillis ->
+                                            val message = dataItem.title
+                                            toDoViewModel.setReminderTime(
+                                                context,
+                                                dataItem.id,
+                                                timeInMillis,
+                                                message
+                                            )
+                                        }
+                                    }
+                                )
                             }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Edit") },
-                                onClick = {
-                                    expanded = false
-                                    onEdit(dataItem)
-                                }
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text("Delete") },
-                                onClick = {
-                                    expanded = false
-                                    toDoViewModel.deleteDataItem(dataItem.id)
-                                }
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text("Add Reminder") },
-                                onClick = {
-                                    expanded = false
-                                    selectedDataItem = dataItem
-                                    showDatePicker = true
-                                }
-                            )
                         }
                     }
                 }
             }
         }
-    }
 
-    if (showDatePicker) {
-        DatePickerDialog(
-            context,
-            { _, year, month, dayOfMonth ->
-                val calendar = Calendar.getInstance().apply {
-                    set(Calendar.YEAR, year)
-                    set(Calendar.MONTH, month)
-                    set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                }
-                selectedDateTime = calendar
-                showDatePicker = false
-                showTimePicker = true
-            },
-            selectedDateTime?.get(Calendar.YEAR) ?: Calendar.getInstance().get(Calendar.YEAR),
-            selectedDateTime?.get(Calendar.MONTH) ?: Calendar.getInstance().get(Calendar.MONTH),
-            selectedDateTime?.get(Calendar.DAY_OF_MONTH) ?: Calendar.getInstance()
-                .get(Calendar.DAY_OF_MONTH)
-        ).show()
     }
+}
 
-    if (showTimePicker) {
-        TimePickerDialog(
-            context,
-            { _, hourOfDay, minute ->
-                selectedDateTime?.apply {
-                    set(Calendar.HOUR_OF_DAY, hourOfDay)
-                    set(Calendar.MINUTE, minute)
-                }
-                selectedDateTime?.let {
-                    selectedDataItem?.let { dataItem ->
-                        val formattedDateTime = SimpleDateFormat(
-                            "yyyy-MM-dd HH:mm",
-                            Locale.getDefault()
-                        ).format(it.time)
-                        dataItem.reminderTime = formattedDateTime
-                        toDoViewModel.updateToDoDataItem(dataItem)
-                    }
-                }
-                showTimePicker = false
-            },
-            selectedDateTime?.get(Calendar.HOUR_OF_DAY) ?: Calendar.getInstance()
-                .get(Calendar.HOUR_OF_DAY),
-            selectedDateTime?.get(Calendar.MINUTE) ?: Calendar.getInstance().get(Calendar.MINUTE),
-            true
-        ).show()
-    }
+fun showDateTimePicker(context: Context, onDateTimeSelected: (Long) -> Unit) {
+    val calendar = Calendar.getInstance()
+    DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            calendar.set(Calendar.YEAR, year)
+            calendar.set(Calendar.MONTH, month)
+            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+
+            TimePickerDialog(context, { _, hourOfDay, minute ->
+                calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                calendar.set(Calendar.MINUTE, minute)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                onDateTimeSelected(calendar.timeInMillis)
+            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show()
+        },
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH),
+        calendar.get(Calendar.DAY_OF_MONTH)
+    ).show()
 }
 
 
 @SuppressLint("ScheduleExactAlarm")
-fun scheduleReminder(context: Context, timeInMillis: Long, message: String) {
-
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+fun scheduleReminder(context: Context, itemId: String, timeInMillis: Long, message: String) {
+    Log.d(
+        "ToDoDataViewModel",
+        "Setting reminder for item $itemId at $timeInMillis with message: $message"
+    )
     val intent = Intent(context, ReminderService::class.java).apply {
+        putExtra("itemId", itemId)
         putExtra("message", message)
     }
     val pendingIntent = PendingIntent.getBroadcast(
         context,
-        0,
+        itemId.hashCode(),
         intent,
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    alarmManager.setExactAndAllowWhileIdle(
+        AlarmManager.RTC_WAKEUP,
+        timeInMillis,
+        pendingIntent
+    )
+    Toast.makeText(context, "Reminder set for $message", Toast.LENGTH_SHORT).show()
+}
 
-    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeInMillis, pendingIntent)
+@Composable
+fun LottieAnimationFromUrl(url: String) {
+    val composition by rememberLottieComposition(LottieCompositionSpec.Url(url))
+    val progress by animateLottieCompositionAsState(composition)
+
+    LottieAnimation(
+        composition = composition,
+        progress = progress,
+        modifier = Modifier
+            .wrapContentSize()
+            .height(200.dp)
+    )
 }

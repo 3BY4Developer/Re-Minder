@@ -12,11 +12,15 @@ import androidx.core.app.NotificationCompat
 class ReminderService : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val message = intent.getStringExtra("message")
+        val itemId = intent.getStringExtra("itemId")
+        val message = intent.getStringExtra("message") ?: return
         Log.d("AlarmDebug", "Alarm received with message: $message")
+        Log.d("Reminder", "Received reminder with message: $message")
 
         createNotificationChannel(context)
-        showNotification(context, message)
+        if (itemId != null) {
+            showNotification(context, itemId, message)
+        }
     }
 
     fun createNotificationChannel(context: Context) {
@@ -36,7 +40,7 @@ class ReminderService : BroadcastReceiver() {
         }
     }
 
-    private fun showNotification(context: Context, message: String?) {
+    private fun showNotification(context: Context, itemId: String, message: String?) {
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val notificationId = System.currentTimeMillis().toInt()
@@ -48,6 +52,6 @@ class ReminderService : BroadcastReceiver() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
 
-        notificationManager.notify(notificationId, notificationBuilder.build())
+        notificationManager.notify(itemId.hashCode(), notificationBuilder.build())
     }
 }

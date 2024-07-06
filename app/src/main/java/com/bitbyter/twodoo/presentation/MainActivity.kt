@@ -20,6 +20,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -38,6 +41,7 @@ import com.bitbyter.twodoo.viewmodel.ToDoDataViewModel
 import com.bitbyter.twodoo.viewmodel.ToDoDataViewModelFactory
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -53,15 +57,16 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+
         FirebaseApp.initializeApp(this)
         requestExactAlarmPermission(this)
         ReminderService().createNotificationChannel(this)
 
         enableEdgeToEdge()
         setContent {
-            val toDoViewModel: ToDoDataViewModel = viewModel(
-                factory = ToDoDataViewModelFactory(FirestoreRepository())
-            )
+            var uid by remember { mutableStateOf<String?>(null) }
+
             TwoDooTheme {
                 Scaffold(modifier = Modifier
                     .fillMaxSize()
@@ -74,6 +79,8 @@ class MainActivity : ComponentActivity() {
 
                             LaunchedEffect(key1 = Unit) {
                                 if(googleAuthUiClient.getSignedInUser() != null) {
+                                    val currentUser = FirebaseAuth.getInstance().currentUser
+                                    uid = currentUser?.uid
                                     navController.navigate("landing_screen")
                                 }
                             }
@@ -86,6 +93,7 @@ class MainActivity : ComponentActivity() {
                                             val signInResult = googleAuthUiClient.signInWithIntent(
                                                 intent = result.data ?: return@launch
                                             )
+
                                             viewModel.onSignInResult(signInResult)
                                         }
                                     }
@@ -99,7 +107,8 @@ class MainActivity : ComponentActivity() {
                                         "Sign in successful",
                                         Toast.LENGTH_LONG
                                     ).show()
-
+                                    val currentUser = FirebaseAuth.getInstance().currentUser
+                                    uid = currentUser?.uid
                                     navController.navigate("landing_screen")
                                     viewModel.resetState()
                                 }
@@ -120,6 +129,10 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("landing_screen") {
+                            val toDoViewModel: ToDoDataViewModel = viewModel(
+                                factory = uid?.let { FirestoreRepository(it) }
+                                    ?.let { ToDoDataViewModelFactory(it) }
+                            )
                             ToDoHome(
                                 context = this@MainActivity,
                                 userData = googleAuthUiClient.getSignedInUser(),
